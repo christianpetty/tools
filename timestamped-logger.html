@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+<title>Timestamped Logger</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  background-color: white;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #131313;
+  text-align: center;
+  max-width: 960px;
+  margin: auto;
+}
+
+h1 {
+  font-size: 4em;
+  font-weight: normal;
+  border-bottom-style: solid;
+  border-width: 1px;
+  padding-bottom: 10px;
+}
+
+p {
+  font-size: 1.25em;
+  line-height: 1.4;
+}
+
+small {
+  font-size: 0.75em;
+}
+
+a:link, a:visited, a:hover, a:active {
+  color: #131313;
+  text-decoration: underline;
+}
+
+textarea {
+  width: 100%;
+  height: 10em;
+  font-family: "Courier New", Courier, monospace;
+}
+
+input[id="note"] {
+  width: 100%;
+  float: left;
+  font-family: "Courier New", Courier, monospace;
+}
+
+input[type="button"] {
+  float: left;
+}
+
+#notice {
+  font-size: 1em;
+}
+
+.alert {
+  color: red;
+}
+</style>
+</head>
+
+<body onload="loadHistory()">
+<h1>Timestamped Logger</h1>
+<p>Type your note and press enter/return to save it to the history with a timestamp. Javascript is required to use this app, but no external calls are performed. 
+History is saved locally in session storage and is wiped after closing tab. Clipboard copies are tab-deliminated.</p>
+
+<div class="alert"><noscript>Sorry this page requires Javascript to function.</noscript></div>
+<textarea id="history" name="history" readonly></textarea>
+<form id="thisForm">
+  <label></label><input type="text" id="note" name="note" autocomplete="off" autofocus><br>
+  <label></label><input type="button" value="Copy to Clipboard" onclick="copy2Clipboard()">
+</form><br>
+<p><small>Save this page to your computer for offline use.</small></p>
+
+<footer>
+<p>&copy; 2020 <a href="https://christianpetty.com">Christian Petty</a> | <a href="https://github.com/christianpetty/website">GitHub</a></p>
+</footer>
+
+<script>
+// Create a text area to display the logger history and set its "id" to "areaId" below.
+var areaId = "history";
+
+// Add event listener for "submit" to handle them differently
+document.getElementById("thisForm").addEventListener('submit', handleForm);
+
+function loadHistory() {
+  // Check if sessionHistory already exists
+  if (sessionStorage.history) {
+    document.getElementById(areaId).value = sessionStorage.history;
+  }
+  // Scroll to end of textarea	
+  document.getElementById(areaId).scrollTop = document.getElementById(areaId).scrollHeight;
+}
+	
+// Concatenate timestamp and note then append to previous history
+function saveHistory(nextLine) {
+  var newHistory = document.getElementById(areaId).value + new Date().toISOString() + "\t" + nextLine + "\n";
+  sessionStorage.history = newHistory;
+  document.getElementById(areaId).value = newHistory;
+  document.getElementById(areaId).scrollTop = document.getElementById(areaId).scrollHeight;
+  document.getElementById("note").value = "";
+}
+
+// Copy history to clipboard
+function copy2Clipboard() {
+  document.getElementById(areaId).select();
+  document.execCommand('copy');
+}
+	
+// Interrupt normal form submit so that page does not refresh on "returns"
+function handleForm(event) {
+  event.preventDefault();
+  // Get text from input field
+  saveHistory(document.getElementById("note").value);
+} 
+	
+// Prompt to close tab
+window.onbeforeunload = function (e) {
+  e = e || window.event;
+
+  // For IE and Firefox prior to version 4
+  if (e) {
+    e.returnValue = 'Sure?';
+  }
+
+  // For Safari
+  return 'Sure?';
+}
+</script>
+</body>
+
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+<title>Grille Generator</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  background-color: white;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #131313;
+  text-align: center;
+  max-width: 960px;
+  margin: auto;
+}
+
+h1 {
+  font-size: 4em;
+  font-weight: normal;
+  border-bottom-style: solid;
+  border-width: 1px;
+  padding-bottom: 10px;
+}
+
+h2 {
+  font-size: 1.25em;
+  font-weight: normal;
+  line-height: 1.4;
+}
+
+p {
+  font-size: 1.25em;
+  line-height: 1.4;
+}
+
+small {
+  font-size: 0.75em;
+}
+
+a:link, a:visited, a:hover, a:active {
+  color: #131313;
+  text-decoration: underline;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 50% 50px;
+  grid-gap: 3px;
+} 
+  
+#plot {
+  margin-bottom: 10px;    
+}
+
+input[type=number] {
+  border: 1px solid black;
+  border-radius: 3px;
+  margin-bottom: 5px;
+}
+  
+input[type=submit] {
+  margin-top: 5px;
+  margin-bottom: 15px;
+}
+
+label {
+  text-align: right;
+}
+
+label:after {
+  content: ":";
+}
+
+.alert {
+  color: red;
+}
+
+#dataTable {
+  width: 30%;
+  margin: auto;
+  margin-bottom: 15px;
+}
+  
+#holeTable {
+  width: 30%;
+  margin: auto;
+}
+
+table th {
+  background-color: honeydew;
+  border: 1px solid black;
+  font-weight: bold;
+}
+
+#holeTable tr:hover {
+  background-color: honeydew;
+}
+  
+textarea {
+  display: block;
+  margin: auto;
+  margin-top: 5px;
+  width: auto;
+  height: 200px;
+}
+</style>
+</head>
+
+<body>
+<h1>Grille Generator</h1>
+
+<h2>Input desired perforation diameter and maximum outer diameter in the same units. 
+Calculations are dimensionless. The graphic is to scale.</h2>
+
+<form id="inputsForm" oninput="validateInputs();">
+  <div class="grid">
+      
+  <label for="holeDiameter">&#216; Holes [units]</label>
+  <input type="number" id="holeDiameter" name="holeDiameter"
+         value="3" min="0.001" step="0.001" required>
+      
+  <label for="outerDiameter">&#216; Outer [units]</label>
+  <input type="number" id="outerDiameter" name="outerDiameter"
+         value="100" min="0.001" step="0.001" required>
+      
+  <label for="outerDiameter">Initial Phase [&#176;]</label>
+  <input type="number" id="initialPhase" name="initialPhase"
+         value="-90" min="-180" max="180" step="0.001" required>
+      
+  <label for="outerDiameter">Per Ring Phase Shift [&#176;]</label>
+  <input type="number" id="phaseShift" name="phaseShift" value="0"
+         min="-180" max="180" step="0.001" required>
+      
+  <label for="colorPhaseShift">Display Phase Shift</label>
+  <input type="checkbox" id="colorPhaseShift" name="colorPhaseShift">
+  </div>
+    
+  <input type="submit" id="submit" name="submit" value="Generate">
+</form>
+
+<canvas id="plot" width="300" height="300"><span class="alert">Javascript is required to use this tool.</span></canvas>
+
+<table class="center" id="dataTable">
+  <tr>
+    <th>No. of Holes</th>
+    <th>Open Area [units^2]</th>
+    <th>Open Area [%]</th>
+  </tr>
+  <tr>
+    <td id="totalHoles"></td>
+    <td id="openAreaU2"></td>
+    <td id="openAreaP"></td>
+  </tr>
+</table>
+  
+<button onclick="copy2Clipboard();">Copy to Clipboard (x &#60;TAB&#62; y)</button>
+  
+<textarea id="textCoords"></textarea>
+
+<p><small>Save this page to your computer for offline use. View documentation 
+<a href="https://cpetty-my.sharepoint.com/:b:/g/personal/admin_cpetty_onmicrosoft_com/EbV5tTzhrJ1PgEWK0CMtmEsBniAFBlD5kL_IQ4SzlvioZg?e=tlEahB">here</a>.</small></p>
+
+<footer><p>&copy; 2020 <a href="https://christianpetty.com">Christian Petty</a> | <a href="https://github.com/christianpetty/website">GitHub</a></p></footer>
+
+<script>
+// Add event listener for "submit" to handle them differently
+document.getElementById("inputsForm").addEventListener('submit', handleForm)
+
+// Initialize canvas
+var plot = document.getElementById("plot");
+var context = plot.getContext("2d");
+context.translate(0.5, 0.5); // Correct some blurriness
+var origin = {x: plot.width / 2, y: plot.height / 2}; // Set origin to the center of the square
+
+// High DPI Stuff
+let rect = plot.getBoundingClientRect(); // get current size of the canvas
+plot.width = rect.width * devicePixelRatio; // increase true width of canvas
+plot.height = rect.height * devicePixelRatio; // increase true height of canvas
+context.scale(devicePixelRatio, devicePixelRatio); // scale future operations
+plot.style.width = rect.width + 'px'; // scale back down using CSS
+plot.style.height = rect.height + 'px'; // scale back down using CSS
+  
+// Define global variables
+var holeDiameter;
+var outerDiameter;
+var initialPhase;
+var phaseShift;
+var colorPhaseShift;
+var precision = 3;
+
+// Set an input as a fixed float
+function toFixedFloat(val) {
+    return parseFloat(val).toFixed(precision);
+  }
+    
+// Hole class
+class Hole {
+  constructor(n, dia, r, phi, x, y) {
+    this.n = n;
+    this.dia = dia;
+    this.r = r;
+    this.phi = phi; // Radians
+    this.x = x;
+    this.y = y;
+  }
+  phiDeg() {
+    return this.phi * 180 / Math.PI;
+  }
+} 
+
+// Circle functions
+function Circle(params) {
+  this.x = params.x || 0;
+  this.y = params.y || 0;
+  this.d = params.d || 0;
+  this.fillStyle = params.fillStyle || "transparent";
+  this.strokeStyle = params.strokeStyle || "#000000";
+  this.lineWidth = params.lineWidth || 0;
+  
+}
+
+Circle.prototype.draw = function () {
+  if (this.fillStyle) {
+    context.fillStyle = this.fillStyle;
+    context.beginPath();
+    context.arc(this.x, this.y, this.d / 2, 0, 2 * Math.PI);
+    context.fill();
+    }
+  if (this.strokeStyle && this.lineWidth) {
+    context.strokeStyle = this.strokeStyle;
+    context.lineWidth = this.lineWidth;
+    context.beginPath();
+    context.arc(this.x, this.y, this.d / 2, 0, 2 * Math.PI);
+    context.stroke();
+  }
+}
+
+// Pattern class
+class Pattern {
+  constructor(d, D, phi_i, phi_shift) {
+    this.d = d;
+    this.D = D;
+    this.phi_i = phi_i;
+    this.phi_shift = phi_shift;
+    this.holes = this.generateHoles();
+    this.area = this.calcArea(this.holes.length, this.d);
+    this.areaP = this.area / (Math.PI / 4 * this.D**2) * 100;
+    this.n = this.holes.length;
+  }
+  generateHoles() {
+    let holes = [];
+    holes[0] = new Hole(1, this.d, 0.0, 0.0, 0.0, 0.0);
+    let n = 1;
+    let phi_n = this.phi_i;
+    let rings = Math.floor((this.D - this.d) / (3 * this.d)); // Number of rings
+    for (let i = 1; i <= rings; i++) {
+      let R_i = 1.5 * i * this.d;
+      let N_i = Math.floor(2 * Math.PI * i);
+      let a_i = Math.PI * 2 / N_i;
+      for (let j = 1; j <= N_i; j++) {
+        let x = R_i * Math.cos(phi_n);
+        let y = R_i * Math.sin(phi_n);
+        holes[n] = new Hole(n + 1, this.d, R_i, phi_n, x, y);
+        phi_n += a_i;
+        n++;
+      }
+      phi_n += this.phi_shift;
+    }
+    return holes;
+  }
+  calcArea(n, d) {
+    return toFixedFloat(n * d**2 * Math.PI / 4);
+  }
+}
+
+// Generate pattern on canvas
+function generateGraphics(holes) {  
+  var patternScale = 0.95 * plot.width / outerDiameter;
+  var outerDiameterPx = outerDiameter * patternScale / devicePixelRatio;
+  var holeDiameterPx = holeDiameter * patternScale; 
+  
+  var graphics = [];
+  // Draw outer circle
+  graphics[0] = new Circle({
+                    x: origin.x,
+                    y: origin.y,
+                    d: outerDiameterPx,
+                    strokeStyle: "black",
+                    lineWidth: 1,
+                    fillStyle: "honeydew"
+                    });
+    
+  for (let i = 0; i < holes.length; i++) {
+    let stroke = "black";
+	if ((i == 0 || holes[i].r != holes[i - 1].r) && colorPhaseShift) {
+	  stroke = "blue";
+	}
+	graphics[i + 1] = new Circle({
+                          x: origin.x + holes[i].x * patternScale,
+                          y: origin.y - holes[i].y * patternScale,
+                          d: holes[i].dia * patternScale,
+                          strokeStyle: stroke,
+                          lineWidth: 1,
+                          fillStyle: "white"});
+  }
+  return graphics;
+}
+    
+// Draw pattern
+function drawGraphics(graphics) {
+    for (let g of graphics) {
+        g.draw();
+    }
+}
+    
+function generateTables(pattern) {
+  document.getElementById("totalHoles").innerHTML = pattern.n;
+  document.getElementById("openAreaU2").innerHTML = toFixedFloat(pattern.area);
+  document.getElementById("openAreaP").innerHTML = toFixedFloat(pattern.areaP);
+}
+  
+function updateTextCoords(holes) {
+  var listOfCoords = "";
+  for (let h of holes) {
+    listOfCoords += toFixedFloat(h.x) + "\t" + toFixedFloat(h.y) +"\n";
+  }
+  document.getElementById("textCoords").value = listOfCoords;
+}
+
+function validateInputs() {
+  document.getElementById("holeDiameter").max = document.getElementById("outerDiameter").value;
+}
+
+function handleForm(event) {
+  event.preventDefault();
+  regenerate();
+}
+    
+function regenerate() {
+  holeDiameter = document.getElementById("holeDiameter").value;
+  outerDiameter = document.getElementById("outerDiameter").value;
+  initialPhase = document.getElementById("initialPhase").value / 180 * Math.PI;
+  phaseShift = document.getElementById("phaseShift").value / 180 * Math.PI;
+  colorPhaseShift = document.getElementById("colorPhaseShift").checked;
+    
+  pattern = new Pattern(holeDiameter, outerDiameter, initialPhase, phaseShift);  
+  graphics = generateGraphics(pattern.holes)
+  drawGraphics(graphics);
+  updateTextCoords(pattern.holes);
+  generateTables(pattern);
+}
+  
+// Copy history to clipboard
+function copy2Clipboard() {
+  document.getElementById("textCoords").select();
+  document.execCommand('copy');
+  console.log("Copied to clipboard!");
+}
+
+regenerate(); // Initial drawPattern on page load
+</script>
+
+</body>
+
+</html>
