@@ -172,14 +172,6 @@ var plot = document.getElementById("plot");
 var context = plot.getContext("2d");
 context.translate(0.5, 0.5); // Correct some blurriness
 var origin = {x: plot.width / 2, y: plot.height / 2}; // Set origin to the center of the square
-
-// High DPI Stuff
-let rect = plot.getBoundingClientRect(); // get current size of the canvas
-plot.width = rect.width * devicePixelRatio; // increase true width of canvas
-plot.height = rect.height * devicePixelRatio; // increase true height of canvas
-context.scale(devicePixelRatio, devicePixelRatio); // scale future operations
-plot.style.width = rect.width + 'px'; // scale back down using CSS
-plot.style.height = rect.height + 'px'; // scale back down using CSS
   
 // Define global variables
 var holeDiameter;
@@ -276,8 +268,8 @@ class Pattern {
 
 // Generate pattern on canvas
 function generateGraphics(holes) {  
-  var patternScale = 0.95 * plot.width / outerDiameter;
-  var outerDiameterPx = outerDiameter * patternScale / devicePixelRatio;
+  var patternScale = 0.95 * plot.width / outerDiameter / devicePixelRatio;
+  var outerDiameterPx = outerDiameter * patternScale;
   var holeDiameterPx = holeDiameter * patternScale; 
   
   var graphics = [];
@@ -338,6 +330,14 @@ function handleForm(event) {
 }
     
 function regenerate() {
+  // High DPI Stuff
+  let rect = plot.getBoundingClientRect(); // get current size of the canvas
+  plot.width = rect.width * devicePixelRatio; // increase true width of canvas
+  plot.height = rect.height * devicePixelRatio; // increase true height of canvas
+  context.scale(devicePixelRatio, devicePixelRatio); // scale future operations
+  plot.style.width = rect.width + 'px'; // scale back down using CSS
+  plot.style.height = rect.height + 'px'; // scale back down using CSS
+
   holeDiameter = document.getElementById("holeDiameter").value;
   outerDiameter = document.getElementById("outerDiameter").value;
   initialPhase = document.getElementById("initialPhase").value / 180 * Math.PI;
