@@ -1,2 +1,7 @@
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
 [[plugins]]
-	package = "@netlify/plugin-sitemap"
+  package = "@netlify/plugin-sitemap"
