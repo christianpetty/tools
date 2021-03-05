@@ -3,7 +3,7 @@ body {
   font-family: Arial, Helvetica Neue, Helvetica, sans-serif;
   color: #333333;
   text-align: center;
-  max-width: 768px;
+  max-width: 750px;
   margin: auto;
 }
 
@@ -15,7 +15,7 @@ h1 {
   padding-top: 0.1em;
   background-color: honeydew;
   background-image:  linear-gradient(#bbd0f7 0px 1px, transparent 1px 10px), linear-gradient(to right, #bbd0f7 0px 1px, transparent 1px 10px);
-  background-size: 30px 31px;
+  background-size: 30px 30px;
   background-position: -1px -1px;
   
 }
