@@ -8,3 +8,6 @@ Unless specifically stated, none of the tools in this repository have undergone 
 
 ## Browser Compatibility
 Tools requiring Javascript were designed to function in modern browsers. It is still possible that they may work in Internet Explorer, but is not guaranteed.
+
+## Contact
+[christianpetty.com/contact](https://www.christianpetty.com/contact)
