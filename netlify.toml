@@ -2,3 +2,11 @@
   for = "/*"
   [headers.values]
     X-Robots-Tag = "noindex"
+
+[[redirects]]
+  from = "/graphics"
+  to = "https://cpetty-my.sharepoint.com/:p:/g/personal/me_christianpetty_com/Eev_ZJN514NLn55jC-TEFT0BGDjY5YTfAJyUjwo_DiyD6A"
+  
+[[redirects]]
+  from = "/tables"
+  to = "https://cpetty-my.sharepoint.com/:x:/g/personal/me_christianpetty_com/EdIc2nyyblxIj_sdVqv7x1ABGphk45yOFTSFDUYr0loySA?e=EvkaPz"
